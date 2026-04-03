@@ -32,6 +32,8 @@ class RumSdk {
         this.setupGlobalErrorHandler();
         this.startBatching();
         this.patchFetch()
+        this.trackLCP();          
+        this.trackCLS();
     }
 
     // ---------------------------
@@ -158,47 +160,95 @@ class RumSdk {
         return Math.random().toString(36).substring(2) + Date.now();
     }
 
-private patchFetch() {
-    const originalFetch = window.fetch;
 
-    window.fetch = async (...args: Parameters<typeof fetch>) => {
-        const start = performance.now();
+    //Network
 
-        try {
-            const response = await originalFetch(...args);
 
-            const duration = performance.now() - start;
+    private patchFetch() {
+        const originalFetch = window.fetch;
+
+        window.fetch = async (...args: Parameters<typeof fetch>) => {
+            const start = performance.now();
+
+            try {
+                const response = await originalFetch(...args);
+
+                const duration = performance.now() - start;
+
+                this.enqueue(
+                    this.createEvent("network request", "info", {
+                        type: "network",
+                        url: args[0],
+                        method: args[1]?.method || "GET",
+                        status: response.status,
+                        duration,
+                        success: true,
+                    })
+                );
+
+                return response;
+            } catch (err: any) {
+                const duration = performance.now() - start;
+
+                this.enqueue(
+                    this.createEvent("network error", "error", {
+                        type: "network",
+                        url: args[0],
+                        method: args[1]?.method || "GET",
+                        duration,
+                        success: false,
+                        error: err.message,
+                    })
+                );
+
+                throw err;
+            }
+        };
+    }
+
+
+    // Web Vitals
+
+    private trackLCP() {
+        const observer = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            const lastEntry = entries[entries.length - 1];
 
             this.enqueue(
-                this.createEvent("network request", "info", {
-                    type: "network",
-                    url: args[0],
-                    method: args[1]?.method || "GET",
-                    status: response.status,
-                    duration,
-                    success: true,
+                this.createEvent("LCP", "info", {
+                    type: "web_vital",
+                    name: "LCP",
+                    value: lastEntry?.startTime,
                 })
             );
+        });
 
-            return response;
-        } catch (err: any) {
-            const duration = performance.now() - start;
+        observer.observe({ type: "largest-contentful-paint", buffered: true });
+    }
 
+    private trackCLS() {
+        let cls = 0;
+
+        const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries() as any) {
+                if (!entry.hadRecentInput) {
+                    cls += entry.value;
+                }
+            }
+        });
+
+        observer.observe({ type: "layout-shift", buffered: true });
+
+        window.addEventListener("beforeunload", () => {
             this.enqueue(
-                this.createEvent("network error", "error", {
-                    type: "network",
-                    url: args[0],
-                    method: args[1]?.method || "GET",
-                    duration,
-                    success: false,
-                    error: err.message,
+                this.createEvent("CLS", "info", {
+                    type: "web_vital",
+                    name: "CLS",
+                    value: cls,
                 })
             );
-
-            throw err;
-        }
-    };
-}
+        });
+    }
 }
 
 
