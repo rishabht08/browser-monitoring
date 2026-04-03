@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>RUM SDK Test</title>
+  </head>
+  <body>
+    <h1>Testing rumSdk</h1>
+
+    <script src="./dist/sdk.js"></script>
+
+    <script>
+      window.rumSdk.init({
+        serviceName: "test-service",
+        projectName: "frontend-app",
+        target: "http://localhost:8080/ingest",
+        defaultAttributes: {
+          "app.version": "1.0.0",
+        },
+      });
+
+      console.log("Hello from SDK");
+      console.warn("Warning test");
+      console.error("Error test");
+
+      // trigger async error
+      Promise.reject("Test rejection");
+    </script>
+  </body>
+</html>
