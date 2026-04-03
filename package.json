@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "npx esbuild src/sdk.ts --bundle --outfile=dist/sdk.js --format=iife --global-name=rumSdk",
     "start": "node dist/index.js"
   },
   "keywords": [],
@@ -18,3 +18,6 @@
     "typescript": "^6.0.2"
   }
 }
+
+
+
