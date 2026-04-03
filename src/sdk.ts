@@ -169,7 +169,10 @@ class RumSdk {
 
         window.fetch = async (...args: Parameters<typeof fetch>) => {
             const start = performance.now();
-
+            const url : string = args[0] as string;
+            if(url.startsWith(this.config.target)) {
+                return originalFetch(...args);
+            }
             try {
                 const response = await originalFetch(...args);
 
