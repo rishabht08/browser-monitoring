@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
-    "build": "npx esbuild src/sdk.ts --bundle --outfile=dist/sdk.js --format=iife --global-name=rumSdk",
+    "build": "npx esbuild src/sdk_trace.ts --bundle --outfile=dist/sdk.js --format=iife --global-name=rumSdk",
     "start": "node dist/index.js"
   },
   "keywords": [],

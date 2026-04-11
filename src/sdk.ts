@@ -1,3 +1,5 @@
+import { DataSource } from "./types";
+
 type Config = {
     serviceName: string;
     projectName: string;
@@ -8,6 +10,7 @@ type Config = {
 type LogLevel = "info" | "warn" | "error";
 
 type Event = {
+    type: DataSource;
     timestamp: number;
     level: LogLevel;
     message: string;
@@ -41,12 +44,12 @@ class RumSdk {
     // ---------------------------
 
     log(message: string, level: LogLevel = "info") {
-        const event = this.createEvent(message, level);
+        const event = this.createEvent(DataSource.LOGS , message, level);
         this.enqueue(event);
     }
 
     error(err: any) {
-        const event = this.createEvent(err?.message || String(err), "error", {
+        const event = this.createEvent(DataSource.LOGS , err?.message || String(err), "error", {
             stack: err?.stack,
         });
         this.enqueue(event);
@@ -105,11 +108,13 @@ class RumSdk {
     }
 
     private createEvent(
+        type: DataSource,
         message: string,
         level: LogLevel,
         extra: Record<string, any> = {}
     ): Event {
         return {
+            type,
             timestamp: Date.now(),
             level,
             message,
@@ -133,7 +138,7 @@ class RumSdk {
             console[level as keyof Console] = (...args: any[]) => {
                 try {
                     this.enqueue(
-                        this.createEvent(args.join(" "), level as LogLevel)
+                        this.createEvent(DataSource.LOGS , args.join(" "), level as LogLevel)
                     );
                 } catch { }
 
@@ -179,7 +184,7 @@ class RumSdk {
                 const duration = performance.now() - start;
 
                 this.enqueue(
-                    this.createEvent("network request", "info", {
+                    this.createEvent(DataSource.NETWORK , "network request", "info", {
                         type: "network",
                         url: args[0],
                         method: args[1]?.method || "GET",
@@ -194,7 +199,7 @@ class RumSdk {
                 const duration = performance.now() - start;
 
                 this.enqueue(
-                    this.createEvent("network error", "error", {
+                    this.createEvent(DataSource.NETWORK , "network error", "error", {
                         type: "network",
                         url: args[0],
                         method: args[1]?.method || "GET",
@@ -218,7 +223,7 @@ class RumSdk {
             const lastEntry = entries[entries.length - 1];
 
             this.enqueue(
-                this.createEvent("LCP", "info", {
+                this.createEvent(DataSource.WEB_VITALS , "LCP", "info", {
                     type: "web_vital",
                     name: "LCP",
                     value: lastEntry?.startTime,
@@ -244,7 +249,7 @@ class RumSdk {
 
         window.addEventListener("beforeunload", () => {
             this.enqueue(
-                this.createEvent("CLS", "info", {
+                this.createEvent(DataSource.WEB_VITALS , "CLS", "info", {
                     type: "web_vital",
                     name: "CLS",
                     value: cls,
